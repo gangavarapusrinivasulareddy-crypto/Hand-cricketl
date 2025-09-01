@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Hand Cricket — Animated</title>
+<style>
+  :root{
+    --bg1:#0f1724; --bg2:#0b3b2e;
+    --card:#0f1724;
+    --accent: #f6b042;
+    --muted:#cbd5e1;
+    --good:#38a169;
+    --bad:#e53e3e;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{
+    height:100%;
+    margin:0;
+    font-family:Inter, system-ui, Arial, sans-serif;
+    background: radial-gradient(1200px 800px at 10% 10%, #122236 0%, #071017 30%, #041219 100%), linear-gradient(135deg,#052a2a 0%, #082a4b 100%);
+    color: #eef2f7;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    padding:12px;
+  }
+
+  /* Top scoreboard */
+  .container{
+    max-width:1100px;
+    margin:0 auto;
+  }
+  .top {
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    padding:12px;
+    border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+    flex-wrap:wrap;
+  }
+  .scorecard { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .stat {
+    background: rgba(255,255,255,0.03);
+    padding:10px 14px;
+    border-radius:10px;
+    min-width:110px;
+    text-align:left;
+  }
+  .stat h3{ margin:0; font-size:12px; color:var(--muted); font-weight:600; letter-spacing:0.6px; }
+  .stat p{ margin:4px 0 0; font-size:18px; font-weight:700; color:#fff; transition:all .35s ease; }
+
+  /* Center playing area */
+  .arena {
+    margin: 18px 0;
+    display:flex;
+    gap:18px;
+    align-items:flex-start;
+    padding:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.005), rgba(255,255,255,0.003));
+    border-radius:12px;
+    min-height:260px;
+    flex-wrap:wrap;
+  }
+
+  /* hands area */
+  .hands {
+    flex:1.2;
+    position:relative;
+    min-height:260px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    border-radius:14px;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    overflow:visible; /* allow svg overflow + shadows */
+  }
+  .pitch {
+    width:100%;
+    max-width:640px;
+    height:220px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .stumps { position:absolute; top:40px; width:44px; height:90px; background: linear-gradient(#7b5b3a, #5a3f27); border-radius:6px; box-shadow: 0 8px 18px rgba(0,0,0,0.6); z-index:2; }
+
+  .hand-row { position:absolute; width:100%; display:flex; justify-content:space-between; padding: 0 16px; top:6px; pointer-events:none; }
+  .hand {
+    width:160px; height:160px; background:linear-gradient(180deg,#0f2b25,#083b3a); border-radius:16px; display:flex; align-items:center; justify-content:center; transform-origin:center bottom;
+    box-shadow: 0 12px 28px rgba(2,6,23,0.6);
+    position:relative;
+    pointer-events:none;
+    overflow:visible;
+  }
+  /* ensure svg visible and responsive */
+  .hand svg { width:120px; height:120px; opacity:0.98; filter: drop-shadow(0 6px 14px rgba(0,0,0,0.6)); }
+  .hand.left { transform: translateY(6px) rotate(-6deg); left:6px }
+  .hand.right { transform: translateY(6px) rotate(6deg); right:6px }
+  .hand.animate { animation:handSwing .55s ease both; }
+  @keyframes handSwing {
+    0%{ transform: translateY(6px) scale(0.98) }
+    40%{ transform: translateY(-22px) scale(1.02) }
+    100%{ transform: translateY(6px) scale(1) }
+  }
+
+  /* bottom controls */
+  .controls {
+    flex:0.9;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    padding:12px;
+    min-width:240px;
+  }
+  .info {
+    background: rgba(255,255,255,0.02);
+    padding:12px;
+    border-radius:10px;
+    text-align:left;
+  }
+  .info h4{ margin:0; font-size:14px; color:var(--muted) }
+  .info p{ margin:8px 0 0; font-size:13px; color:#dbeafe; }
+
+  .grid {
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
+    gap:10px;
+    margin-top:12px;
+    width:100%;
+  }
+
+  .numbtn {
+    background: linear-gradient(180deg,#fffbf5,#fff7ed);
+    color:#111827;
+    border-radius:12px;
+    padding:12px 6px;
+    font-size:20px;
+    font-weight:700;
+    border: none;
+    cursor:pointer;
+    box-shadow: 0 8px 18px rgba(3,7,18,0.45);
+    transition: transform .13s ease, box-shadow .13s ease;
+    min-height:56px;
+  }
+  .numbtn:active { transform: translateY(4px) scale(0.98); box-shadow: 0 4px 12px rgba(3,7,18,0.35); }
+  .numbtn.disabled { opacity:0.45; pointer-events:none; }
+
+  .btn-row { display:flex; gap:10px; margin-top:12px; justify-content:center; }
+
+  .bigbtn {
+    background:var(--accent);
+    color:#081014;
+    border:none; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:800;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+  }
+
+  /* result popup */
+  .popup {
+    position:fixed; left:50%; top:18px; transform:translateX(-50%); background:linear-gradient(180deg,#062428,#0b3b2e);
+    border-radius:12px; padding:12px 18px; box-shadow: 0 12px 30px rgba(0,0,0,0.6); z-index:60;
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* animation for the ball number */
+  .ball-num {
+    position:absolute; left:50%; top:120px; transform:translate(-50%,-50%); z-index:20;
+    width:56px; height:56px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background: radial-gradient(circle at 30% 30%, #fff, #f3d6b3);
+    color:#0b1b1a; font-weight:800; font-size:20px;
+    box-shadow: 0 8px 18px rgba(0,0,0,0.5);
+    transform-origin:center center;
+  }
+  .pop { animation: popBall .55s cubic-bezier(.2,.9,.3,1) both; }
+  @keyframes popBall {
+    0% { transform: translate(-50%,-50%) scale(.2); opacity:0 }
+    60% { transform: translate(-50%,-120%) scale(1.08); opacity:1 }
+    100% { transform: translate(-50%,-50%) scale(1); opacity:1 }
+  }
+
+  /* small helpers */
+  .muted{ color:var(--muted); font-size:13px; }
+  .center{ text-align:center; }
+
+  /* overlays for hand numbers */
+  .numoverlay { font-size:12px; color:var(--muted); }
+
+  /* responsive adjustments */
+  @media (max-width:880px){
+    body{ padding:10px; }
+    .arena{ flex-direction:column; padding:8px; gap:12px; }
+    .top{ margin-bottom:8px; padding:10px; }
+    .hand{ width:120px; height:120px; }
+    .hand svg { width:88px; height:88px; }
+    .controls{ min-width:unset; width:100%; }
+    .grid{ grid-template-columns: repeat(auto-fit, minmax(56px, 1fr)); }
+    .pitch { height:180px; }
+    .ball-num { top:100px; }
+  }
+  @media (max-width:420px){
+    .numbtn{ padding:10px 4px; font-size:18px; min-height:48px; }
+    .hand svg { width:76px; height:76px; }
+    .stat p{ font-size:16px }
+  }
+</style>
+</head>
+<body>
+  <div class="container">
+    <!-- Top scoreboard -->
+    <div class="top">
+      <div class="scorecard">
+        <div class="stat"><h3>Runs</h3><p id="runs">0</p></div>
+        <div class="stat"><h3>Balls Remaining</h3><p id="balls">12</p></div>
+        <div class="stat"><h3>Overs</h3><p id="overs">0.0</p></div>
+      </div>
+      <div class="stat" style="min-width:220px">
+        <h3>Innings</h3>
+        <p id="inningLabel">Tossing...</p>
+        <div class="muted" id="tossText" style="margin-top:6px"></div>
+      </div>
+      <div class="stat" style="min-width:100px">
+        <h3>Target</h3><p id="target">-</p>
+      </div>
+    </div>
+
+    <!-- Arena & controls -->
+    <div class="arena">
+      <div class="hands">
+        <div class="hand-row">
+          <div class="hand left" id="playerHand" title="You">
+            <!-- simple hand svg (placeholder) -->
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Player hand">
+              <g fill="#ffdca8" stroke="#e0b688" stroke-width="1">
+                <rect x="26" y="4" width="6" height="18" rx="3"/>
+                <rect x="18" y="8" width="6" height="18" rx="3"/>
+                <rect x="34" y="10" width="6" height="18" rx="3"/>
+                <rect x="42" y="16" width="6" height="18" rx="3"/>
+                <rect x="18" y="30" width="34" height="24" rx="6"/>
+              </g>
+            </svg>
+          </div>
+
+          <div class="hand right" id="compHand" title="Computer">
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Computer hand">
+              <g fill="#dbeafe" stroke="#9fc3ff" stroke-width="1">
+                <rect x="26" y="4" width="6" height="18" rx="3"/>
+                <rect x="18" y="8" width="6" height="18" rx="3"/>
+                <rect x="34" y="10" width="6" height="18" rx="3"/>
+                <rect x="42" y="16" width="6" height="18" rx="3"/>
+                <rect x="18" y="30" width="34" height="24" rx="6"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+
+        <div class="pitch">
+          <div class="stumps"></div>
+          <div id="ballNum" class="ball-num" style="display:none">5</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="info">
+          <h4 id="phaseTitle">Toss: Choose Odd/Even</h4>
+          <p id="phaseText">Game will start after toss.</p>
+        </div>
+
+        <div id="interactive" class="center" style="margin-top:8px;">
+          <!-- Toss controls injected here -->
+        </div>
+
+        <div style="height:6px"></div>
+
+        <div class="grid" id="numGrid" style="display:none; margin-top:8px;">
+          <!-- number buttons 1..10 created by JS -->
+        </div>
+
+        <div class="btn-row center" style="margin-top:6px;">
+          <button class="bigbtn" id="restartAll" style="display:none">Restart Match</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- popup -->
+    <div id="popup" style="display:none" class="popup center"></div>
+  </div>
+
+<script>
+/* Game logic with animations simplified & cleaned up */
+let state = {
+  phase: 'toss',
+  playerOddEven: null,
+  computerOddEven: null,
+  playerTossNum: null,
+  computerTossNum: null,
+  tossWinner: null,
+  tossWinnerRole: null,
+  innings: 1,
+  playerScore: 0,
+  compScore: 0,
+  ballsPerInnings: 12,
+  ballsLeft: 12,
+  target: null,
+  isPlayerBatting: null,
+};
+
+const interactive = document.getElementById('interactive');
+const phaseTitle = document.getElementById('phaseTitle');
+const phaseText = document.getElementById('phaseText');
+const numGrid = document.getElementById('numGrid');
+const popup = document.getElementById('popup');
+
+const runsEl = document.getElementById('runs');
+const ballsEl = document.getElementById('balls');
+const oversEl = document.getElementById('overs');
+const inningLabel = document.getElementById('inningLabel');
+const tossText = document.getElementById('tossText');
+const targetEl = document.getElementById('target');
+
+const playerHand = document.getElementById('playerHand');
+const compHand = document.getElementById('compHand');
+const ballNumEl = document.getElementById('ballNum');
+
+const restartAll = document.getElementById('restartAll');
+restartAll.addEventListener('click', () => location.reload());
+
+/* helper UI functions */
+function showPopup(text, timeout=2000){
+  popup.style.display='block';
+  popup.innerText=text;
+  setTimeout(()=> popup.style.display='none', timeout);
+}
+function animateHands(){
+  playerHand.classList.remove('animate');
+  compHand.classList.remove('animate');
+  void playerHand.offsetWidth;
+  playerHand.classList.add('animate');
+  compHand.classList.add('animate');
+}
+function showBallNumber(n){
+  ballNumEl.style.display='flex';
+  ballNumEl.textContent = n;
+  ballNumEl.classList.remove('pop');
+  void ballNumEl.offsetWidth;
+  ballNumEl.classList.add('pop');
+  setTimeout(()=>{ ballNumEl.classList.remove('pop'); }, 650);
+}
+
+/* scoreboard update */
+function updateScoreboard(){
+  runsEl.innerText = state.isPlayerBatting ? state.playerScore : state.compScore;
+  ballsEl.innerText = state.ballsLeft;
+  const oversBowled = (state.ballsPerInnings - state.ballsLeft);
+  const oversText = Math.floor(oversBowled/6) + '.' + (oversBowled%6);
+  oversEl.innerText = oversText;
+  inningLabel.innerText = `Innings ${state.innings} — ${state.isPlayerBatting ? 'Player batting' : 'Computer batting'}`;
+  tossText.innerText = `Toss: ${state.tossWinner ? (state.tossWinner === 'player' ? 'You' : 'Computer') + ' won' : '—' }`;
+  targetEl.innerText = state.target === null ? '-' : state.target;
+}
+
+/* create number buttons 1..10 (no hand-sign text) */
+function createNumberButtons(){
+  numGrid.innerHTML='';
+  for (let i=1;i<=10;i++){
+    const b = document.createElement('button');
+    b.className='numbtn';
+    b.innerHTML = `<div style="font-size:20px">${i}</div>`; // only show number
+    b.onclick = ()=> playerPick(i);
+    numGrid.appendChild(b);
+  }
+}
+
+/* --- Toss flow --- */
+function startToss(){
+  state.phase='toss';
+  phaseTitle.innerText='Toss: Choose Odd or Even';
+  phaseText.innerText='Pick Odd or Even. Then both pick a number 1–10. Sum decides toss winner.';
+  interactive.innerHTML = `
+    <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+      <button class="bigbtn" id="oddBtn">Odd</button>
+      <button class="bigbtn" id="evenBtn">Even</button>
+    </div>
+  `;
+  document.getElementById('oddBtn').onclick = ()=> chooseOddEven('odd');
+  document.getElementById('evenBtn').onclick = ()=> chooseOddEven('even');
+  numGrid.style.display='none';
+  updateScoreboard();
+}
+
+function chooseOddEven(choice){
+  state.playerOddEven = choice;
+  state.computerOddEven = (choice === 'odd') ? 'even' : 'odd';
+  phaseTitle.innerText = `Toss pick done — you chose ${choice.toUpperCase()}`;
+  phaseText.innerText = `Now pick a number (1–10) for toss. Computer will pick a random number.`;
+  interactive.innerHTML = `<div class="muted">Choose your toss-number:</div>`;
+  createTossNumberButtons();
+}
+
+function createTossNumberButtons(){
+  const container = document.createElement('div');
+  container.className = 'grid';
+  for (let i=1;i<=10;i++){
+    const b = document.createElement('button');
+    b.className='numbtn';
+    b.innerHTML = `${i}`;
+    b.onclick = ()=> playTossNumber(i);
+    container.appendChild(b);
+  }
+  interactive.appendChild(container);
+}
+
+function playTossNumber(n){
+  state.playerTossNum = n;
+  state.computerTossNum = Math.floor(Math.random()*10)+1;
+  const total = state.playerTossNum + state.computerTossNum;
+  const parity = (total%2===0) ? 'even' : 'odd';
+  const winner = (parity === state.playerOddEven) ? 'player' : 'computer';
+  state.tossWinner = winner;
+
+  phaseTitle.innerText = 'Toss — Result';
+  phaseText.innerText = `You: ${state.playerTossNum} — Computer: ${state.computerTossNum} → Total ${total} (${parity}) → ${winner==='player' ? 'You won' : 'Computer won'} the toss.`;
+
+  interactive.innerHTML = '';
+  showPopup(`Toss: ${state.playerTossNum} + ${state.computerTossNum} = ${total} (${parity})`, 2200);
+  animateHands();
+  showBallNumber(total);
+
+  setTimeout(()=> {
+    if (state.tossWinner === 'player'){
+      askPlayerToChooseRole();
+    } else {
+      const compChoice = (Math.random() < 0.5) ? 'bat' : 'ball';
+      state.tossWinnerRole = compChoice;
+      state.isPlayerBatting = (compChoice === 'ball'); // if computer chooses ball, player bats
+      phaseText.innerText += ` — Computer chooses to ${compChoice}.`;
+      prepareFirstInnings();
+    }
+  }, 1200);
+}
+
+function askPlayerToChooseRole(){
+  interactive.innerHTML = `
+    <div style="margin-top:8px;">
+      <div class="muted">You won the toss — choose to Bat or Bowl:</div>
+      <div style="margin-top:8px; display:flex; gap:10px; justify-content:center">
+        <button class="bigbtn" id="batBtn">Bat</button>
+        <button class="bigbtn" id="bowlBtn">Bowl</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('batBtn').onclick = ()=> { state.tossWinnerRole='bat'; state.isPlayerBatting = true; prepareFirstInnings(); };
+  document.getElementById('bowlBtn').onclick = ()=> { state.tossWinnerRole='ball'; state.isPlayerBatting = false; prepareFirstInnings(); };
+}
+
+/* Prepare first innings */
+function prepareFirstInnings(){
+  state.phase = 'play1';
+  state.innings = 1;
+  state.ballsLeft = state.ballsPerInnings;
+  state.playerScore = 0;
+  state.compScore = 0;
+  state.target = null;
+  phaseTitle.innerText = 'Match start';
+  phaseText.innerText = `Innings ${state.innings}: ${state.isPlayerBatting ? 'You bat first' : 'Computer bats first'}`;
+  interactive.innerHTML = `<div class="muted">Use the buttons to pick numbers. If both choose same — OUT.</div>`;
+  numGrid.style.display='grid';
+  createNumberButtons();
+  updateScoreboard();
+}
+
+/* Player picks during active innings */
+function playerPick(num){
+  if (state.phase !== 'play1' && state.phase !== 'play2') return;
+  if (state.isPlayerBatting){
+    const playerChoice = num;
+    const compChoice = Math.floor(Math.random()*10)+1;
+    resolveRun(playerChoice, compChoice, true);
+  } else {
+    const playerChoice = num;
+    const compChoice = Math.floor(Math.random()*10)+1;
+    resolveRun(compChoice, playerChoice, false);
+  }
+}
+
+/* resolve a single ball */
+function resolveRun(batsmanChoice, bowlerChoice, battingIsPlayer){
+  animateHands();
+  showBallNumber(batsmanChoice);
+  setTimeout(()=> {
+    if (batsmanChoice === bowlerChoice){
+      // wicket: end innings immediately (single-wicket rules)
+      state.ballsLeft--;
+      updateScoreboard();
+      showPopup('WICKET! OUT!', 1400);
+      endInnings();
+    } else {
+      if (battingIsPlayer){
+        state.playerScore += batsmanChoice;
+        showPopup(`+${batsmanChoice} runs`, 1200);
+      } else {
+        state.compScore += batsmanChoice;
+        showPopup(`Computer +${batsmanChoice} runs`, 1200);
+      }
+      state.ballsLeft--;
+      updateScoreboard();
+      if (state.ballsLeft <= 0){
+        endInnings();
+      } else {
+        // continue playing
+        // small UI overlay of picks
+      }
+    }
+
+    // show overlays on hands
+    const prevLeft = playerHand.querySelector('.numoverlay');
+    if (prevLeft) prevLeft.remove();
+    const left = document.createElement('div');
+    left.className='numoverlay muted';
+    left.style.position='absolute';
+    left.style.top='50%';
+    left.style.left='8px';
+    left.style.transform='translateY(-50%)';
+    left.style.padding='6px 8px';
+    left.style.borderRadius='8px';
+    left.style.pointerEvents='none';
+    left.innerText = battingIsPlayer ? `Bat: ${batsmanChoice}` : `Ball: ${bowlerChoice}`;
+    playerHand.appendChild(left);
+
+    const prevRight = compHand.querySelector('.numoverlay');
+    if (prevRight) prevRight.remove();
+    const right = document.createElement('div');
+    right.className='numoverlay muted';
+    right.style.position='absolute';
+    right.style.top='50%';
+    right.style.right='8px';
+    right.style.transform='translateY(-50%)';
+    right.style.padding='6px 8px';
+    right.style.borderRadius='8px';
+    right.style.pointerEvents='none';
+    right.innerText = battingIsPlayer ? `Ball: ${bowlerChoice}` : `Bat: ${batsmanChoice}`;
+    compHand.appendChild(right);
+
+  }, 200);
+}
+
+/* End an innings */
+function endInnings(){
+  if (state.innings === 1){
+    if (state.isPlayerBatting){
+      state.target = state.playerScore + 1;
+      state.isPlayerBatting = false;
+    } else {
+      state.target = state.compScore + 1;
+      state.isPlayerBatting = true;
+    }
+    state.innings = 2;
+    state.ballsLeft = state.ballsPerInnings;
+    updateScoreboard();
+    phaseTitle.innerText = 'Innings Break';
+    phaseText.innerText = `Target set: ${state.target}. Now ${state.isPlayerBatting ? 'You' : 'Computer'} will bat to chase.`;
+    numGrid.style.display = 'grid';
+    setTimeout(()=> {
+      state.phase='play2';
+      phaseTitle.innerText = 'Second Innings';
+      phaseText.innerText = `Innings ${state.innings}: ${state.isPlayerBatting ? 'You batting' : 'Computer batting'}`;
+      updateScoreboard();
+    }, 1200);
+  } else {
+    state.phase='finished';
+    numGrid.style.display='none';
+    determineWinner();
+  }
+}
+
+/* determine winner after both innings or chase */
+function determineWinner(){
+  let playerFinal = state.playerScore;
+  let compFinal = state.compScore;
+  updateScoreboard();
+  let msg='';
+  if (playerFinal > compFinal){
+    msg = `You Win! (${playerFinal} - ${compFinal})`;
+  } else if (playerFinal < compFinal){
+    msg = `You Lose. (${playerFinal} - ${compFinal})`;
+  } else {
+    msg = `Tie! (${playerFinal} - ${compFinal})`;
+  }
+  phaseTitle.innerText = 'Match Finished';
+  phaseText.innerText = msg;
+  showPopup(msg, 5000);
+  restartAll.style.display = 'inline-block';
+  setTimeout(()=> {
+    interactive.innerHTML = `<div class="muted">Match finished. ${msg}</div>`;
+  }, 400);
+}
+
+/* initialize */
+startToss();
+updateScoreboard();
+
+</script>
+</body>
+</html>
