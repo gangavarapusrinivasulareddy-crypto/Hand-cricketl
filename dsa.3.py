@@ -1,12 +1,12 @@
-'''n = int(input("Enter the number of elements: "))
+n = int(input("Enter the number of elements: "))
 arr = list(map(int, input("Enter the elements: ").split()))
 for i in range(n):
     for j in range(0, n - i - 1):
         if arr[j] > arr[j + 1]:
             arr[j], arr[j + 1] = arr[j + 1], arr[j]
 print("Sorted array:", arr)
-'''
-'''n = int(input("Enter the number of elements: "))
+
+n = int(input("Enter the number of elements: "))
 arr = list(map(int, input("Enter the elements: ").split()))
 for i in range(n):
     min_index = i
@@ -15,8 +15,8 @@ for i in range(n):
             min_index = j
     arr[i], arr[min_index] = arr[min_index], arr[i]
 print("Sorted array:", arr)
-'''
-'''n = int(input("Enter the number of elements: "))
+
+n = int(input("Enter the number of elements: "))
 arr = list(map(int, input("Enter the elements: ").split()))
 for i in range(1, n):
     key = arr[i]
@@ -26,7 +26,7 @@ for i in range(1, n):
         j -= 1
     arr[j + 1] = key
 print("Sorted array:", arr)
-'''
+
 def merge_sort(arr):
     if len(arr) > 1:
         mid = len(arr) // 2
@@ -55,3 +55,15 @@ n = int(input("Enter the number of elements: "))
 arr = list(map(int, input("Enter the elements: ").split()))
 merge_sort(arr)
 print("Sorted array:", arr)
+
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[0]
+    left = [x for x in arr[1:] if x <= pivot]
+    right = [x for x in arr[1:] if x > pivot]
+    return quick_sort(left) + [pivot] + quick_sort(right)
+numbers = list(map(int, input("Enter numbers separated by spaces: ").split()))
+sorted_numbers = quick_sort(numbers)
+print("Sorted elements:", sorted_numbers)
+
